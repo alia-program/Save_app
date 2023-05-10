@@ -43,18 +43,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        preferences = getApplicationContext().getSharedPreferences("my_settingsa", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        index = preferences.getInt("index",0);
-
-
-
         layout = findViewById(R.id.linerLayout);
-
         Button button = findViewById(R.id.Save_button);
         button.setOnClickListener(save_Button);
-
         ImageButton imageButton = findViewById(R.id.imagebutton);
         imageButton.setOnClickListener(add_Button);
 
@@ -67,26 +58,16 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        //
+        //indexFileの作成
+        preferences = getSharedPreferences("my_settings", Context.MODE_PRIVATE);
+
+        index = preferences.getInt("index",0);
         json_index = jsonArray.length();
         Log.d("index", String.valueOf(index));
         Log.d("index j", String.valueOf(json_index));
 
         setItem();
-
-        /*add_View
-        for (int in = 0; in < i; in++){
-            Edit_class edit_class = new Edit_class(getApplicationContext(),null);
-            edit_class.setId('e' + i);
-            layout.addView(edit_class);
-            Log.d("aaa", String.valueOf(i));
-        }
-        */
-
     }
-
-
-
 
 
     View.OnClickListener save_Button = new View.OnClickListener() {
@@ -94,8 +75,10 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             try {
                 add_JsonArray();
+                Log.d("error", "Ok");
             } catch (JSONException e) {
                 e.printStackTrace();
+                Log.d("error", "saveButton");
             }
         }
     };
@@ -103,16 +86,11 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener add_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            add_ItemView("aaaaaa",false);
             index++;
+            add_ItemView("aaaaaa",false);
             Log.d("index", String.valueOf(index));
         }
     };
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
 
     @Override
     protected void onStop() {
@@ -134,7 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
     //Jsonの作成・保存
     public void add_JsonArray() throws JSONException {
-            for (int view_i = 0; view_i <= index; view_i++){
+        Log.d("add_json s", String.valueOf(index));
+            for (int view_i = 1; view_i <= index; view_i++){
 
                 Edit_class ed= findViewById(view_i);
 
@@ -143,21 +122,21 @@ public class MainActivity extends AppCompatActivity {
                 json_item.put("EditText",ed.getEditText());
                 json_item.put("checkBox",ed.getCheckBox());
 
-                /*
-                *
-                */
-                Log.d("aaaa", ed.getEditText());
-                Log.d("aaaa", json_item.getString("EditText"));
-                Log.d("aaaa", String.valueOf(json_item.getBoolean("checkBox")));
+                Log.d("aaaa",jsonArray.toString());
+                Log.d("aaaa","No"+view_i);
 
                 //アイテムを配列に入れる
                 jsonArray.put(json_item);
 
+                /*
+                 */
             }
         //オブジェクトに配列を入れる
         object.put("json_array" + index,edit);
-
         Log.d("aaaaaaaa", jsonArray.toString());
+
+        //indexの保存
+        save_index();
     }
 
     public void setItem() {
@@ -174,12 +153,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //保存前用
-        if (json_index <= 0){
-            for (int i = 0; i <= index; i++){
+        if (json_index == 0){
+            for (int i = 0; i < index; i++){
                 add_ItemView("aaa",true);
-
-                edit.setId(i);
-                Log.d("indextag", String.valueOf(edit.getTag()));
             }
         }
 
@@ -187,12 +163,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void add_ItemView(String s,Boolean b){
+        //itemのインスタンスを作成して追加
         edit = new Edit_class(getApplicationContext(),null);
         layout.addView(edit);
 
+        //引数を値に
         edit.setEditText(s);
         edit.setCheckBox(b);
+        edit.setId(index);
+        Log.d("Id", String.valueOf(edit.getId()));
+    }
 
+    public void save_index(){
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt("index",index);
+        editor.apply();
     }
 
 }
