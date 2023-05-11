@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,6 +22,8 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,11 +34,15 @@ public class MainActivity extends AppCompatActivity {
     Edit_class edit;
 
     int index = 0;
+    int number = index+1;
     int json_index;
 
     JSONObject object;
     JSONArray jsonArray;
     LinearLayout layout;
+
+    String file_Name = "saveTodo.json";
+    File json_File;
 
     SharedPreferences preferences;
 
@@ -67,8 +74,10 @@ public class MainActivity extends AppCompatActivity {
         Log.d("index j", String.valueOf(json_index));
 
         setItem();
-    }
 
+        json_File = new File(getApplicationContext().getFilesDir(),file_Name);
+
+    }
 
     View.OnClickListener save_Button = new View.OnClickListener() {
         @Override
@@ -86,11 +95,12 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener add_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            index++;
             add_ItemView("aaaaaa",false);
             Log.d("index", String.valueOf(index));
+            index++;
         }
     };
+
 
     @Override
     protected void onStop() {
@@ -100,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        Log.d("ttt", jsonArray.toString());
 
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("index",index);
@@ -108,37 +117,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
-    //Jsonの作成・保存
+    //Jsonの作成
     public void add_JsonArray() throws JSONException {
         Log.d("add_json s", String.valueOf(index));
-            for (int view_i = 1; view_i <= index; view_i++){
+        if (0 != jsonArray.length() && 0 < index){//JsonFileが保存できていない場合、indexとjsonArrayの数が一致しないためエラー
 
-                Edit_class ed= findViewById(view_i);
+            for (int view_i = 0; view_i < index ; view_i++){
 
+                Edit_class ed= (Edit_class) layout.findViewById(view_i);
                 //アイテム作成
                 JSONObject json_item = new JSONObject();
                 json_item.put("EditText",ed.getEditText());
                 json_item.put("checkBox",ed.getCheckBox());
-
-                Log.d("aaaa",jsonArray.toString());
-                Log.d("aaaa","No"+view_i);
-
                 //アイテムを配列に入れる
-                jsonArray.put(json_item);
+                jsonArray.put(view_i,json_item);
 
-                /*
-                 */
             }
-        //オブジェクトに配列を入れる
-        object.put("json_array" + index,edit);
-        Log.d("aaaaaaaa", jsonArray.toString());
+            //オブジェクトに配列を入れる
+            object.put("json_array" + index,edit);
+            Log.d("aaaa",jsonArray.toString(2));
 
-        //indexの保存
-        save_index();
+            //indexの保存
+            save_index();
+
+        }else {
+            Toast.makeText(getApplicationContext() , "ファイルの欠損により保存に失敗しました。", Toast.LENGTH_LONG).show();
+            Log.d("error","Jsonファイルが破損しました");
+        }
+
     }
 
+    //開始時のアイテムセット
     public void setItem() {
         for (int i = 0; i < json_index; i++){
             try {
@@ -151,17 +160,15 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-
         //保存前用
         if (json_index == 0){
             for (int i = 0; i < index; i++){
                 add_ItemView("aaa",true);
             }
         }
-
-
     }
 
+    //アイテムの生成
     private void add_ItemView(String s,Boolean b){
         //itemのインスタンスを作成して追加
         edit = new Edit_class(getApplicationContext(),null);
@@ -174,10 +181,40 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Id", String.valueOf(edit.getId()));
     }
 
+    //Indexの数値保存
     public void save_index(){
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("index",index);
         editor.apply();
     }
+
+
+
+        public void save_JsonArray(JSONArray jsonArray){
+        try (FileWriter writer = new FileWriter(json_File)) {
+            writer.write(String.valueOf(jsonArray));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public JSONArray get_JsonArray(){
+        JSONArray getJson;
+        try {
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(json_File));
+            getJson = bufferedReader.readLine();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return getJson;
+    }
+
+
+
+
+
+
 
 }
