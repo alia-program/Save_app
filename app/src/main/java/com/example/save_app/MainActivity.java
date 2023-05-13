@@ -34,11 +34,10 @@ public class MainActivity extends AppCompatActivity {
     Edit_class edit;
 
     int index = 0;
-    int number = index+1;
-    int json_index;
 
     JSONObject object;
     JSONArray jsonArray;
+
     LinearLayout layout;
 
     String file_Name = "saveTodo.json";
@@ -50,34 +49,40 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         layout = findViewById(R.id.linerLayout);
+
+        Button reset = findViewById(R.id.reset);
+        reset.setOnClickListener(reset_);
         Button button = findViewById(R.id.Save_button);
         button.setOnClickListener(save_Button);
         ImageButton imageButton = findViewById(R.id.imagebutton);
         imageButton.setOnClickListener(add_Button);
 
-        //JsonFileの作成
-        try {
-            object = new JSONObject("{\"box\":\"null\"}");
-            jsonArray = new JSONArray();
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
         //indexFileの作成
         preferences = getSharedPreferences("my_settings", Context.MODE_PRIVATE);
 
         index = preferences.getInt("index",0);
-        json_index = jsonArray.length();
-        Log.d("index", String.valueOf(index));
-        Log.d("index j", String.valueOf(json_index));
-
-        setItem();
 
         json_File = new File(getApplicationContext().getFilesDir(),file_Name);
 
     }
+
+    View.OnClickListener reset_ = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            SharedPreferences.Editor editor = preferences.edit();
+            index = 0;
+            editor.putInt("index",0);
+            editor.apply();
+
+            try (FileWriter writer = new FileWriter(json_File)) {
+                writer.write("");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
     View.OnClickListener save_Button = new View.OnClickListener() {
         @Override
@@ -95,12 +100,30 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener add_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            add_ItemView("aaaaaa",false);
-            Log.d("index", String.valueOf(index));
             index++;
+            add_ItemView("aaaaaa",false,0);
+            Log.d("index", String.valueOf(index));
         }
     };
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //JsonFileの作成
+        try {
+            object = new JSONObject();
+            if (index == 0){
+                jsonArray = new JSONArray();
+            }else {
+                setItem();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        Log.d("index", String.valueOf(index));
+        Log.d("index j", String.valueOf(jsonArray.length()));
+    }
 
     @Override
     protected void onStop() {
@@ -116,17 +139,18 @@ public class MainActivity extends AppCompatActivity {
         editor.apply();
     }
 
-
     //Jsonの作成
     public void add_JsonArray() throws JSONException {
-        Log.d("add_json s", String.valueOf(index));
-        if (0 != jsonArray.length() && 0 < index){//JsonFileが保存できていない場合、indexとjsonArrayの数が一致しないためエラー
+        Log.d("add_json index", String.valueOf(index));
+        Log.d("add_json json", String.valueOf(jsonArray.length()));
+        if (jsonArray.length() > 0 || jsonArray.length() == 0 && index > 0 ||jsonArray.length() == 0 && index == 0){//JsonFileが保存できていない場合、indexとjsonArrayの数が一致しないためエラー
+            for (int view_i = 1; view_i < index ; view_i++){
 
-            for (int view_i = 0; view_i < index ; view_i++){
-
-                Edit_class ed= (Edit_class) layout.findViewById(view_i);
-                //アイテム作成
                 JSONObject json_item = new JSONObject();
+
+                Edit_class ed= layout.findViewById(view_i);
+                Log.d("error", String.valueOf(view_i));
+                //アイテム作成
                 json_item.put("EditText",ed.getEditText());
                 json_item.put("checkBox",ed.getCheckBox());
                 //アイテムを配列に入れる
@@ -134,11 +158,12 @@ public class MainActivity extends AppCompatActivity {
 
             }
             //オブジェクトに配列を入れる
-            object.put("json_array" + index,edit);
-            Log.d("aaaa",jsonArray.toString(2));
+            object.put("Box",jsonArray);
+            Log.d("aaaa", String.valueOf(object.length()));
 
             //indexの保存
             save_index();
+            save_JsonArray(jsonArray);
 
         }else {
             Toast.makeText(getApplicationContext() , "ファイルの欠損により保存に失敗しました。", Toast.LENGTH_LONG).show();
@@ -148,28 +173,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //開始時のアイテムセット
-    public void setItem() {
-        for (int i = 0; i < json_index; i++){
+    public void setItem() throws JSONException {
+        jsonArray = new JSONArray(get_JsonArray());
+        object.put("Box",jsonArray);
+        for (int i = 0; i < index; i++){
             try {
-                JSONObject getJson = jsonArray.getJSONObject(i);
-                String s = getJson.getString("EditText");
-                Boolean b = getJson.getBoolean("checkBox");
+                JSONObject json_item = jsonArray.getJSONObject(i);
 
-                add_ItemView(s ,b);
+                String s = json_item.getString("EditText");
+                Boolean b = json_item.getBoolean("checkBox");
+
+                add_ItemView(s ,b,1);
             } catch (JSONException e) {
                 e.printStackTrace();
-            }
-        }
-        //保存前用
-        if (json_index == 0){
-            for (int i = 0; i < index; i++){
-                add_ItemView("aaa",true);
             }
         }
     }
 
     //アイテムの生成
-    private void add_ItemView(String s,Boolean b){
+    private void add_ItemView(String s,Boolean b,int in){
         //itemのインスタンスを作成して追加
         edit = new Edit_class(getApplicationContext(),null);
         layout.addView(edit);
@@ -177,8 +199,14 @@ public class MainActivity extends AppCompatActivity {
         //引数を値に
         edit.setEditText(s);
         edit.setCheckBox(b);
-        edit.setId(index);
-        Log.d("Id", String.valueOf(edit.getId()));
+        if (in == 0){//スタート用
+            edit.setId(index);
+            Log.d("error", String.valueOf(index));
+        }else {//再開用
+            for (int i = 0;i < index;i++){
+                edit.setId(i);
+            }
+        }
     }
 
     //Indexの数値保存
@@ -188,33 +216,25 @@ public class MainActivity extends AppCompatActivity {
         editor.apply();
     }
 
-
-
-        public void save_JsonArray(JSONArray jsonArray){
+    public void save_JsonArray(JSONArray array){
         try (FileWriter writer = new FileWriter(json_File)) {
-            writer.write(String.valueOf(jsonArray));
+            writer.write(array.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public JSONArray get_JsonArray(){
-        JSONArray getJson;
+    public String get_JsonArray(){
+        String json_string = "empty";
         try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader(json_File));
-            getJson = bufferedReader.readLine();
+            json_string = bufferedReader.readLine();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return getJson;
+        return json_string;
     }
-
-
-
-
-
-
 
 }
