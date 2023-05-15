@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
     Edit_class edit;
 
-    int index = 0;
+    int index = 1;
 
     JSONObject object;
     JSONArray jsonArray;
@@ -61,12 +61,24 @@ public class MainActivity extends AppCompatActivity {
 
         //indexFileの作成
         preferences = getSharedPreferences("my_settings", Context.MODE_PRIVATE);
-
         index = preferences.getInt("index",0);
 
         json_File = new File(getApplicationContext().getFilesDir(),file_Name);
-
+        //JsonFileの作成
+        try {
+            object = new JSONObject();
+            if (index == 0){
+                jsonArray = new JSONArray();
+            }else {
+                setItem();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
+
+    //Log.d("index", String.valueOf(index));
+    //Log.d("index j", String.valueOf(jsonArray.length()));
 
     View.OnClickListener reset_ = new View.OnClickListener() {
         @Override
@@ -100,30 +112,11 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener add_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            add_ItemView("aaaaaa",false,0,index);
             index++;
-            add_ItemView("aaaaaa",false,0);
             Log.d("index", String.valueOf(index));
         }
     };
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        //JsonFileの作成
-        try {
-            object = new JSONObject();
-            if (index == 0){
-                jsonArray = new JSONArray();
-            }else {
-                setItem();
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        Log.d("index", String.valueOf(index));
-        Log.d("index j", String.valueOf(jsonArray.length()));
-    }
 
     @Override
     protected void onStop() {
@@ -143,8 +136,8 @@ public class MainActivity extends AppCompatActivity {
     public void add_JsonArray() throws JSONException {
         Log.d("add_json index", String.valueOf(index));
         Log.d("add_json json", String.valueOf(jsonArray.length()));
-        if (jsonArray.length() > 0 || jsonArray.length() == 0 && index > 0 ||jsonArray.length() == 0 && index == 0){//JsonFileが保存できていない場合、indexとjsonArrayの数が一致しないためエラー
-            for (int view_i = 1; view_i < index ; view_i++){
+        if (jsonArray.length() >= 0 && index >= 0){//JsonFileが保存できていない場合、indexとjsonArrayの数が一致しないためエラー
+            for (int view_i = 0; view_i < index ; view_i++){
 
                 JSONObject json_item = new JSONObject();
 
@@ -183,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 String s = json_item.getString("EditText");
                 Boolean b = json_item.getBoolean("checkBox");
 
-                add_ItemView(s ,b,1);
+                add_ItemView(s ,b,1,i);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -191,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //アイテムの生成
-    private void add_ItemView(String s,Boolean b,int in){
+    private void add_ItemView(String s,Boolean b,int i,int id){
         //itemのインスタンスを作成して追加
         edit = new Edit_class(getApplicationContext(),null);
         layout.addView(edit);
@@ -199,13 +192,11 @@ public class MainActivity extends AppCompatActivity {
         //引数を値に
         edit.setEditText(s);
         edit.setCheckBox(b);
-        if (in == 0){//スタート用
+        if (i == 0){//スタート用
             edit.setId(index);
             Log.d("error", String.valueOf(index));
         }else {//再開用
-            for (int i = 0;i < index;i++){
-                edit.setId(i);
-            }
+            edit.setId(id);
         }
     }
 
