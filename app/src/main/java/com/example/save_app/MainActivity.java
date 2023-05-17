@@ -49,9 +49,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         layout = findViewById(R.id.linerLayout);
 
+        //ボタン類
         Button reset = findViewById(R.id.reset);
         reset.setOnClickListener(reset_);
         Button button = findViewById(R.id.Save_button);
@@ -59,27 +59,14 @@ public class MainActivity extends AppCompatActivity {
         ImageButton imageButton = findViewById(R.id.imagebutton);
         imageButton.setOnClickListener(add_Button);
 
-        //indexFileの作成
-        preferences = getSharedPreferences("my_settings", Context.MODE_PRIVATE);
-        index = preferences.getInt("index",0);
-
-        json_File = new File(getApplicationContext().getFilesDir(),file_Name);
-        //JsonFileの作成
-        try {
-            object = new JSONObject();
-            if (index == 0){
-                jsonArray = new JSONArray();
-            }else {
-                setItem();
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        //起動時にファイルの作成
+        create_Files();
     }
 
     //Log.d("index", String.valueOf(index));
     //Log.d("index j", String.valueOf(jsonArray.length()));
 
+    //リセットボタン(仮)
     View.OnClickListener reset_ = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -96,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //セーブボタン(仮)
     View.OnClickListener save_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -109,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //追加ボタン
     View.OnClickListener add_Button = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -118,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //アプリから離れたとき
     @Override
     protected void onStop() {
         super.onStop();
@@ -130,6 +120,57 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("index",index);
         editor.apply();
+    }
+
+
+
+
+    //Indexの数値保存
+    public void save_index(){
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt("index",index);
+        editor.apply();
+    }
+
+    //Json形式の保存
+    public void save_JsonArray(JSONArray array){
+        try (FileWriter writer = new FileWriter(json_File)) {
+            writer.write(array.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //保存したJsonファイルを取り出す
+    public String get_JsonArray(){
+        String json_string = "empty";
+        try {
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(json_File));
+            json_string = bufferedReader.readLine();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return json_string;
+    }
+
+    //開始時のアイテムセット
+    public void setItem() throws JSONException {
+        jsonArray = new JSONArray(get_JsonArray());
+        object.put("Box",jsonArray);
+        for (int i = 0; i < index; i++){
+            try {
+                JSONObject json_item = jsonArray.getJSONObject(i);
+
+                String s = json_item.getString("EditText");
+                Boolean b = json_item.getBoolean("checkBox");
+
+                add_ItemView(s ,b,1,i);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     //Jsonの作成
@@ -165,25 +206,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //開始時のアイテムセット
-    public void setItem() throws JSONException {
-        jsonArray = new JSONArray(get_JsonArray());
-        object.put("Box",jsonArray);
-        for (int i = 0; i < index; i++){
-            try {
-                JSONObject json_item = jsonArray.getJSONObject(i);
-
-                String s = json_item.getString("EditText");
-                Boolean b = json_item.getBoolean("checkBox");
-
-                add_ItemView(s ,b,1,i);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    //アイテムの生成
+    //viewの生成
     private void add_ItemView(String s,Boolean b,int i,int id){
         //itemのインスタンスを作成して追加
         edit = new Edit_class(getApplicationContext(),null);
@@ -200,32 +223,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //Indexの数値保存
-    public void save_index(){
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("index",index);
-        editor.apply();
-    }
+    //ファイルの作成
+    private void create_Files(){
+        //indexFileの作成
+        preferences = getSharedPreferences("my_settings", Context.MODE_PRIVATE);
+        index = preferences.getInt("index",0);
 
-    public void save_JsonArray(JSONArray array){
-        try (FileWriter writer = new FileWriter(json_File)) {
-            writer.write(array.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public String get_JsonArray(){
-        String json_string = "empty";
+        json_File = new File(getApplicationContext().getFilesDir(),file_Name);
+        //JsonFileの作成
         try {
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(json_File));
-            json_string = bufferedReader.readLine();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+            object = new JSONObject();
+            if (index == 0){
+                jsonArray = new JSONArray();
+            }else {
+                setItem();
+            }
+        } catch (JSONException e) {
             e.printStackTrace();
         }
-        return json_string;
     }
-
 }
